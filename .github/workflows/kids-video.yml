@@ -1,0 +1,18 @@
+name: Kids Story Automation
+
+on:
+  workflow_dispatch:
+
+jobs:
+  create-story:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Start automation
+        run: echo "Kids Story Automation Started!"
+
+      - name: Check system
+        run: |
+          echo "USA Kids Channel"
+          echo "English Stories"
+          echo "Video Production Ready"
