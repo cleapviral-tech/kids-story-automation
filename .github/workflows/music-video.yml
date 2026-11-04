@@ -1,48 +1,61 @@
-name: music-video
+name: Bairan Music Video Automation
 
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - '.github/workflows/music-video.yml'
 
 jobs:
-  build:
+  build-and-upload:
     runs-on: ubuntu-latest
-    
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      
+      - name: Setup FFmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
-      - name: Install FFmpeg
+      - name: Create Video for Bairan
         run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg
-          ffmpeg -version
+          echo "Creating video for Bairan..."
+          # एक साधा background image बनवतो
+          ffmpeg -f lavfi -i color=c=0x1a1a2d:s=1920x1080:d=10 -vf "drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='Bairan - Trending 2026':fontcolor=white:fontsize=80:x=(w-text_w)/2:y=(h-text_h)/2" -c:v libx264 -t 10 video.mp4
+          echo "video.mp4 created"
+          ls -lh video.mp4
 
-      - name: Install Python dependencies
+      - name: Upload to YouTube
+        env:
+          YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
         run: |
-          python -m pip install --upgrade pip
-          pip install pydub Pillow moviepy || true
-          mkdir -p output
+          pip install google-auth google-auth-oauthlib google-api-python-client
+          python3 << 'PY'
+          import os
+          from google.oauth2.credentials import Credentials
+          from googleapiclient.discovery import build
+          from googleapiclient.http import MediaFileUpload
 
-      - name: Generate Music Video
-        run: |
-          echo "Checking files..."
-          ls -la
-          echo "Creating sample video..."
-          ffmpeg -y -f lavfi -i color=c=black:s=1280x720:d=5 -f lavfi -i anullsrc=r=44100:cl=stereo -shortest output/sample-video.mp4
-          echo "Video created successfully"
-          ls -lh output/
-
-      - name: Upload Video Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: music-video-output
-          path: output/
-          retention-days: 5
+          creds = Credentials(
+              None,
+              refresh_token=os.environ['YT_REFRESH_TOKEN'],
+              token_uri='https://oauth2.googleapis.com/token',
+              client_id=os.environ['YT_CLIENT_ID'],
+              client_secret=os.environ['YT_CLIENT_SECRET'],
+              scopes=['https://www.googleapis.com/auth/youtube.upload']
+          )
+          youtube = build('youtube', 'v3', credentials=creds)
+          
+          request = youtube.videos().insert(
+              part="snippet,status",
+              body={
+                  "snippet": {
+                      "title": "Bairan - Trending Song 2026 | Viral Hit",
+                      "description": "Bairan Trending Song 2026 Video Automation Test. #bairan #trending #viral",
+                      "tags": ["Bairan", "Trending", "2026", "Viral Song"],
+                      "categoryId": "10"
+                  },
+                  "status": {"privacyStatus": "private"}
+              },
+              media_body=MediaFileUpload("video.mp4", resumable=True)
+          )
+          response = request.execute()
+          print(f"Uploaded! Video ID: {response['id']}")
+          PY
