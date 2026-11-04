@@ -65,6 +65,7 @@ jobs:
 
       - name: Generate AI Storyboard
         env:
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          SONG_NAME: ${{ inputs.song_name }}
-          VIDEO_DESCRIPTION: ${{ inputs.video
+                env:
+        OPENROUTER_API_KEY: "${{ secrets.OPENROUTER_API_KEY }}"
+        SONG_NAME: "${{ inputs.song_name }}"
+        VIDEO_DESCRIPTION: "${{ inputs.video_description }}"
