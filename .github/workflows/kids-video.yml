@@ -8,11 +8,43 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Start automation
-        run: echo "Kids Story Automation Started!"
-
-      - name: Check system
+      - name: Generate Kids Story
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: |
-          echo "USA Kids Channel"
-          echo "English Stories"
-          echo "Video Production Ready"
+          set -e
+
+          if [ -z "$OPENROUTER_API_KEY" ]; then
+            echo "OpenRouter API key is missing!"
+            exit 1
+          fi
+
+          curl --fail --silent --show-error \
+            https://openrouter.ai/api/v1/chat/completions \
+            -H "Authorization: Bearer $OPENROUTER_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "model": "nvidia/nemotron-3-ultra-550b-a55b:free",
+              "messages": [
+                {
+                  "role": "user",
+                  "content": "Write an original, engaging 5-minute English adventure story for children aged 5-10. Include a title, fun characters, a happy ending and a positive moral."
+                }
+              ]
+            }' -o response.json
+
+          STORY=$(jq -r '.choices[0].message.content // empty' response.json)
+
+          if [ -z "$STORY" ]; then
+            echo "Story generation failed"
+            cat response.json
+            exit 1
+          fi
+
+          echo "$STORY" > story.md
+
+      - name: Save Story
+        uses: actions/upload-artifact@v4
+        with:
+          name: kids-story
+          path: story.md
