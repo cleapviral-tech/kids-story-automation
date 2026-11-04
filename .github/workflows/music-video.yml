@@ -1,0 +1,70 @@
+name: AI Music Video Generator
+
+on:
+  workflow_dispatch:
+    inputs:
+      song_name:
+        description: "Enter Song Name"
+        required: true
+        type: string
+
+      video_description:
+        description: "Describe your desired video"
+        required: true
+        type: string
+
+      video_style:
+        description: "Select Video Style"
+        required: true
+        type: choice
+        options:
+          - Cinematic
+          - Romantic
+          - Sad
+          - Horror
+          - Devotional
+          - Motivational
+          - Action
+          - Documentary
+
+      duration:
+        description: "Select Video Duration"
+        required: true
+        type: choice
+        options:
+          - "30 seconds"
+          - "1 minute"
+          - "3 minutes"
+          - "5 minutes"
+          - "10 minutes"
+
+      quality:
+        description: "Video Quality"
+        required: true
+        type: choice
+        options:
+          - "720p"
+          - "1080p"
+
+      format:
+        description: "Video Format"
+        required: true
+        type: choice
+        options:
+          - "16:9"
+          - "9:16"
+          - "1:1"
+
+jobs:
+  generate-video-plan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install Tools
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Generate AI Storyboard
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          SONG_NAME: ${{ inputs.song_name }}
+          VIDEO_DESCRIPTION: ${{ inputs.video
